@@ -1,9 +1,3 @@
-/* ============================================
-   Entropy AI — Password Strength Analyzer
-   Core Logic
-   ============================================ */
-
-// ─── Common Passwords (Top 500) ─────────────
 const COMMON = new Set([
   "123456","password","12345678","qwerty","123456789","12345","1234","111111","1234567",
   "sunshine","qwerty123","iloveyou","princess","admin","welcome","666666","abc123",
@@ -89,8 +83,6 @@ const COMMON = new Set([
   "monica","chrystal","janet","patricia","debra","susan","vera","jill1","megan1"
 ]);
 
-// ─── Pattern Definitions ────────────────────
-
 const SEQUENTIAL = [
   "abcdefghijklmnopqrstuvwxyz",
   "0123456789",
@@ -99,14 +91,11 @@ const SEQUENTIAL = [
   "zxcvbnm"
 ];
 
-// Keyboard adjacent pairs for pattern detection
 const KEYBOARD_ROWS = [
   "qwertyuiop",
   "asdfghjkl",
   "zxcvbnm"
 ];
-
-// ─── Core Analysis ──────────────────────────
 
 function analyzePassword(password) {
   if (!password) {
@@ -128,8 +117,6 @@ function analyzePassword(password) {
   return { score, entropy, crackTimeSeconds, weaknesses, suggestions };
 }
 
-// Shannon entropy: E = L * log2(R)
-// where L = length, R = pool size (possible characters)
 function calculateEntropy(password) {
   const hasLower = /[a-z]/.test(password);
   const hasUpper = /[A-Z]/.test(password);
@@ -150,20 +137,16 @@ function calculateEntropy(password) {
 
 function calculateScore(entropy, password) {
   if (!password) return 0;
-  // Raw score from entropy (target: 128 bits = perfect)
   let score = Math.min(100, (entropy / 128) * 100);
 
-  // Penalty for common passwords
   if (COMMON.has(password.toLowerCase())) {
     score *= 0.2;
   }
 
-  // Penalty for patterns
   if (hasSequentialPattern(password)) score *= 0.85;
   if (hasKeyboardPattern(password)) score *= 0.85;
   if (hasRepeatedChars(password)) score *= 0.9;
 
-  // Short length hard cap
   if (password.length < 4) score = Math.min(score, 10);
   else if (password.length < 6) score = Math.min(score, 25);
   else if (password.length < 8) score = Math.min(score, 50);
@@ -171,11 +154,8 @@ function calculateScore(entropy, password) {
   return Math.round(Math.max(0, Math.min(100, score)));
 }
 
-// Estimate crack time based on entropy bits
 function estimateCrackTime(entropy) {
-  // Assume 10^9 guesses/sec (online attack with rate limiting)
   const guessesPerSecond = 1e9;
-  // Average guesses needed = 2^(bits - 1)
   const averageGuesses = Math.pow(2, entropy - 1);
   return averageGuesses / guessesPerSecond;
 }
@@ -190,7 +170,6 @@ function detectWeaknesses(password) {
   w.push({ id: "length",    pass: password.length >= 8,      label: "8+ characters" });
   w.push({ id: "common",    pass: !COMMON.has(password.toLowerCase()), label: "Not a common password" });
 
-  // Pattern checks only shown if password is long enough
   if (password.length >= 4) {
     w.push({ id: "sequential", pass: !hasSequentialPattern(password), label: "No sequential patterns" });
     w.push({ id: "keyboard",   pass: !hasKeyboardPattern(password),   label: "No keyboard patterns" });
@@ -251,15 +230,12 @@ function generateSuggestions(weaknesses, password) {
   return suggestions;
 }
 
-// ─── Pattern Detection ──────────────────────
-
 function hasSequentialPattern(password) {
   const lower = password.toLowerCase();
   for (const seq of SEQUENTIAL) {
     for (let i = 0; i < seq.length - 2; i++) {
       const chunk = seq.slice(i, i + 3);
       if (lower.includes(chunk)) return true;
-      // Check reverse
       const rev = chunk.split("").reverse().join("");
       if (lower.includes(rev)) return true;
     }
@@ -284,8 +260,6 @@ function hasRepeatedChars(password) {
   return /(.)\1{2,}/.test(password);
 }
 
-// ─── Password Generation ────────────────────
-
 function generatePassword(length = 20) {
   const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const lower = "abcdefghijklmnopqrstuvwxyz";
@@ -299,19 +273,16 @@ function generatePassword(length = 20) {
     return arr[0] % max;
   };
 
-  // Ensure at least one of each type
   let password = "";
   password += upper[cryptoRand(upper.length)];
   password += lower[cryptoRand(lower.length)];
   password += digits[cryptoRand(digits.length)];
   password += symbols[cryptoRand(symbols.length)];
 
-  // Fill remaining
   for (let i = password.length; i < length; i++) {
     password += all[cryptoRand(all.length)];
   }
 
-  // Fisher-Yates shuffle
   const arr = password.split("");
   for (let i = arr.length - 1; i > 0; i--) {
     const j = cryptoRand(i + 1);
@@ -320,8 +291,6 @@ function generatePassword(length = 20) {
 
   return arr.join("");
 }
-
-// ─── Format Crack Time ──────────────────────
 
 function formatCrackTime(seconds) {
   if (seconds <= 0) return "—";
@@ -338,14 +307,12 @@ function formatCrackTime(seconds) {
     { limit: Infinity, label: "centuries", div: 315360000 }
   ];
 
-  // Find appropriate unit
   for (let i = 0; i < units.length; i++) {
     if (seconds < units[i].limit) {
       const unit = units[i];
       const val = seconds / unit.div;
 
       if (i === 0) {
-        // Milliseconds
         const ms = seconds * 1000;
         return ms < 1 ? "Instantly" : `${Math.round(ms)} ms`;
       }
@@ -354,7 +321,6 @@ function formatCrackTime(seconds) {
         return `${Math.round(seconds * 1000)} ms`;
       }
 
-      // Handle plural
       const rounded = Math.round(val);
       const label = rounded === 1 ? unit.label : unit.label + "s";
 
@@ -371,14 +337,11 @@ function formatCrackTime(seconds) {
     }
   }
 
-  // Fallback for extremely large values
   const years = seconds / 31536000;
   if (years >= 1e6) return "Centuries";
   if (years >= 1000) return `${Math.round(years / 1000)}k years`;
   return `${Math.round(years)} years`;
 }
-
-// ─── Strength Label & Color ─────────────────
 
 function getStrengthMeta(score) {
   if (score >= 80) return { label: "Very Strong", color: "var(--strength-5)" };
@@ -387,8 +350,6 @@ function getStrengthMeta(score) {
   if (score >= 20) return { label: "Weak", color: "var(--strength-2)" };
   return { label: "Very Weak", color: "var(--strength-1)" };
 }
-
-// ─── UI ──────────────────────────────────────
 
 const $ = (id) => document.getElementById(id);
 
@@ -415,16 +376,13 @@ function updateUI(password) {
   currentPassword = password;
   const result = analyzePassword(password);
 
-  // Strength bar
   const meta = getStrengthMeta(result.score);
   elements.fill.style.width = `${result.score}%`;
   elements.fill.style.background = meta.color;
   elements.label.textContent = password ? meta.label : "No password";
 
-  // Score text
   elements.score.innerHTML = `${result.score} <span class="score-max">/ 100</span>`;
 
-  // Crack time
   if (password) {
     elements.crackTime.textContent = formatCrackTime(result.crackTimeSeconds);
     elements.crackSection.classList.add("visible");
@@ -435,25 +393,21 @@ function updateUI(password) {
     elements.resultsGrid.classList.remove("visible");
   }
 
-  // Weaknesses (requirements)
   const reqChecks = result.weaknesses.filter(w =>
     ["lowercase","uppercase","digits","symbols","length","common"].includes(w.id)
   );
   renderChecklist(elements.weaknessesList, reqChecks);
 
-  // Patterns
   const patChecks = result.weaknesses.filter(w =>
     ["sequential","keyboard","repeated"].includes(w.id)
   );
 
-  // If no patterns shown (too short), show placeholder
   if (patChecks.length === 0 && password.length < 4 && password.length > 0) {
     elements.patternsList.innerHTML = `<li class="suggestion-item">Type more characters to check for patterns</li>`;
   } else {
     renderChecklist(elements.patternsList, patChecks);
   }
 
-  // Suggestions
   elements.suggestionsList.innerHTML = "";
   if (result.suggestions.length === 0) {
     elements.suggestionsList.innerHTML = `<li class="suggestion-item">Enter a password to get started</li>`;
@@ -466,7 +420,6 @@ function updateUI(password) {
     });
   }
 
-  // Copy button state
   elements.copyBtn.disabled = !password;
 }
 
@@ -481,8 +434,6 @@ function renderChecklist(container, items) {
   });
 }
 
-// ─── Toast Notification ─────────────────────
-
 let toastTimeout;
 
 function showToast(message) {
@@ -494,14 +445,10 @@ function showToast(message) {
   }, 2000);
 }
 
-// ─── Event Listeners ────────────────────────
-
-// Real-time analysis
 elements.input.addEventListener("input", () => {
   updateUI(elements.input.value);
 });
 
-// Toggle visibility
 elements.toggle.addEventListener("click", () => {
   const isPassword = elements.input.type === "password";
   elements.input.type = isPassword ? "text" : "password";
@@ -513,12 +460,10 @@ elements.toggle.addEventListener("click", () => {
   }
 });
 
-// Generate password
 elements.generateBtn.addEventListener("click", () => {
   const password = generatePassword(20);
   elements.input.value = password;
   elements.input.type = "password";
-  // Reset toggle icon
   const showIcon = elements.toggle.querySelector(".eye-icon");
   const hideIcon = elements.toggle.querySelector(".eye-off-icon");
   if (showIcon && hideIcon) {
@@ -526,20 +471,17 @@ elements.generateBtn.addEventListener("click", () => {
     hideIcon.style.display = "none";
   }
   updateUI(password);
-  // Focus and select
   elements.input.focus();
   elements.input.select();
   showToast("Password generated!");
 });
 
-// Copy password
 elements.copyBtn.addEventListener("click", async () => {
   if (!currentPassword) return;
   try {
     await navigator.clipboard.writeText(currentPassword);
     showToast("Copied to clipboard!");
   } catch {
-    // Fallback
     const ta = document.createElement("textarea");
     ta.value = currentPassword;
     ta.style.position = "fixed";
@@ -552,7 +494,6 @@ elements.copyBtn.addEventListener("click", async () => {
   }
 });
 
-// Keyboard shortcut: Escape clears input
 elements.input.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     elements.input.value = "";
@@ -560,7 +501,5 @@ elements.input.addEventListener("keydown", (e) => {
     elements.input.blur();
   }
 });
-
-// ─── Init ──────────────────────────────────
 
 updateUI("");
