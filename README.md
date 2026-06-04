@@ -23,6 +23,4 @@ A real-time password strength analyzer that uses entropy-based scoring to help y
 4. **Score Adjustment** — Base entropy score is adjusted downward for detected weaknesses
 5. **Crack Time** — Estimated using `2^(entropy - 1) / 10^9` guesses per second
 
-## License
 
-MIT
